@@ -13,16 +13,18 @@
       width: 100%;
       font-family: 'Inter', sans-serif;
       background: #f9f9f9;
-    }
-    body {
       display: flex;
       justify-content: center;
       align-items: center;
     }
+    body.dark {
+      background: #121212;
+      color: #f1f1f1;
+    }
     .container {
       width: 100%;
       max-width: 900px;
-      height: 100%;
+      max-height: 95vh;
       padding: 20px;
       box-sizing: border-box;
       background: #fff;
@@ -30,7 +32,10 @@
       border-radius: 10px;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
+    }
+    body.dark .container {
+      background: #1e1e1e;
+      box-shadow: 0 0 10px rgba(255,255,255,0.05);
     }
     h1 {
       text-align: center;
@@ -42,6 +47,13 @@
       padding: 10px;
       font-size: 16px;
       margin-bottom: 10px;
+      background: #fff;
+      color: #000;
+    }
+    body.dark textarea {
+      background: #2c2c2c;
+      color: #f1f1f1;
+      border: 1px solid #555;
     }
     .controls {
       display: flex;
@@ -55,6 +67,9 @@
       border: 1px solid #ccc;
       border-radius: 5px;
     }
+    .controls input {
+      width: 100px;
+    }
     #display {
       flex: 1;
       overflow-y: auto;
@@ -63,6 +78,12 @@
       border-radius: 5px;
       background: #fafafa;
       line-height: 1.6;
+      color: #000;
+    }
+    body.dark #display {
+      background: #2c2c2c;
+      border-color: #444;
+      color: #f1f1f1;
     }
     .word {
       padding: 0 3px;
@@ -85,14 +106,24 @@
       overflow: hidden;
       margin-top: 10px;
     }
+    body.dark #progressBar {
+      background: #444;
+    }
     #progress {
       height: 100%;
       width: 0%;
       background: #457b9d;
     }
+    .dark-toggle {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
+  <button class="dark-toggle" onclick="toggleDarkMode()">🌓 Toggle Dark Mode</button>
   <div class="container">
     <h1>Smart Timed Reader</h1>
     <div id="countdown"></div>
@@ -186,6 +217,10 @@
       } else {
         document.getElementById("message").textContent = "✅ Done reading!";
       }
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark");
     }
   </script>
 </body>
