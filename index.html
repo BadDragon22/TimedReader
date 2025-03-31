@@ -2,50 +2,109 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Timed Reading Highlighter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Timed Reader</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: Arial, sans-serif;
-      line-height: 1.6;
+      font-family: 'Inter', sans-serif;
+      background: #f9f9f9;
+      margin: 0;
       padding: 20px;
     }
-    #display {
-      margin-top: 20px;
-      max-height: 400px;
-      overflow-y: auto;
-      border: 1px solid #ccc;
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 10px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
       padding: 10px;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+    }
+    .controls input, .controls button {
+      font-size: 16px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    #display {
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background: #fafafa;
+      line-height: 1.6;
     }
     .word {
-      padding: 0 2px;
+      padding: 0 3px;
       display: inline-block;
-      transition: background-color 0.2s;
     }
     .highlight {
       background-color: yellow;
     }
-    #countdown {
+    #countdown, #message {
       font-weight: bold;
-      color: red;
-      margin-top: 15px;
+      color: #e63946;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    #progressBar {
+      width: 100%;
+      height: 10px;
+      background: #ddd;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    #progress {
+      height: 100%;
+      width: 0%;
+      background: #457b9d;
     }
   </style>
 </head>
 <body>
-  <h1>Timed Reading Highlighter</h1>
-  <textarea id="textInput" rows="10" cols="80" placeholder="Paste your text here..."></textarea><br><br>
-  Time: 
-  <input type="number" id="minutes" placeholder="Min" min="0" style="width:60px"> min 
-  <input type="number" id="seconds" placeholder="Sec" min="0" max="59" style="width:60px"> sec
-  <button onclick="prepareReading()">Start</button>
-
-  <div id="countdown"></div>
-  <div id="display"></div>
+  <div class="container">
+    <h1>Smart Timed Reader</h1>
+    <div id="countdown"></div>
+    <textarea id="textInput" placeholder="Paste your text here..."></textarea>
+    <div class="controls">
+      <input type="number" id="minutes" placeholder="Minutes" min="0">
+      <input type="number" id="seconds" placeholder="Seconds" min="0" max="59">
+      <button onclick="prepareReading()">▶ Start</button>
+      <button onclick="loadDemoText()">📄 Demo Text</button>
+    </div>
+    <div id="display"></div>
+    <div id="progressBar"><div id="progress"></div></div>
+    <div id="message"></div>
+  </div>
 
   <script>
     let currentWordIndex = 0;
     let wordElements = [];
     let timePerChar = 0;
+    let totalWords = 0;
+
+    function loadDemoText() {
+      document.getElementById("textInput").value = "Reading is a wonderful way to expand the mind, relax the soul, and discover new ideas. Try this demo to experience the timed reader.";
+    }
 
     function prepareReading() {
       const text = document.getElementById("textInput").value.trim();
@@ -54,6 +113,7 @@
       const totalTime = (minutes * 60 + seconds) * 1000;
       const countdownEl = document.getElementById("countdown");
       const display = document.getElementById("display");
+      const progress = document.getElementById("progress");
 
       if (!text || totalTime <= 0) {
         alert("Please enter text and a valid time.");
@@ -61,12 +121,15 @@
       }
 
       const words = text.split(/\s+/);
+      totalWords = words.length;
       const totalChars = words.reduce((sum, word) => sum + word.length, 0);
       timePerChar = totalTime / totalChars;
 
       display.innerHTML = "";
-      wordElements = [];
+      document.getElementById("message").textContent = "";
+      progress.style.width = "0%";
       currentWordIndex = 0;
+      wordElements = [];
 
       words.forEach(word => {
         const span = document.createElement("span");
@@ -76,7 +139,6 @@
         wordElements.push(span);
       });
 
-      // Countdown
       let countdown = 3;
       countdownEl.textContent = `Starting in ${countdown}...`;
       const countdownInterval = setInterval(() => {
@@ -99,20 +161,18 @@
       if (currentWordIndex < wordElements.length) {
         const span = wordElements[currentWordIndex];
         span.classList.add("highlight");
-
-        // Scroll so highlighted word is visible
         span.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
 
         const word = span.textContent.trim();
-        const wordLength = word.length;
+        const delay = Math.max(300, Math.min(word.length * timePerChar, 1500));
 
-        const minDelay = 300;  // minimum milliseconds per word
-        const maxDelay = 1500; // optional cap
-        const delay = Math.min(wordLength * timePerChar, maxDelay);
-        const finalDelay = Math.max(delay, minDelay);
+        const progress = document.getElementById("progress");
+        progress.style.width = ((currentWordIndex + 1) / totalWords * 100).toFixed(2) + "%";
 
         currentWordIndex++;
-        setTimeout(highlightNextWord, finalDelay);
+        setTimeout(highlightNextWord, delay);
+      } else {
+        document.getElementById("message").textContent = "✅ Done reading!";
       }
     }
   </script>
