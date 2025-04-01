@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TimedReader</title>
+  <title>Smart Timed Reader</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
     html, body {
@@ -12,14 +12,15 @@
       height: 100%;
       width: 100%;
       font-family: 'Inter', sans-serif;
-      background: #f9f9f9;
+      background: #121212;
+      color: #f1f1f1;
       display: flex;
       justify-content: center;
       align-items: center;
     }
-    body.dark {
-      background: #121212;
-      color: #f1f1f1;
+    body.light {
+      background: #f9f9f9;
+      color: #000;
     }
     .container {
       width: 100%;
@@ -27,15 +28,15 @@
       max-height: 95vh;
       padding: 20px;
       box-sizing: border-box;
-      background: #fff;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      background: #1e1e1e;
+      box-shadow: 0 0 10px rgba(255,255,255,0.05);
       border-radius: 10px;
       display: flex;
       flex-direction: column;
     }
-    body.dark .container {
-      background: #1e1e1e;
-      box-shadow: 0 0 10px rgba(255,255,255,0.05);
+    body.light .container {
+      background: #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
     h1 {
       text-align: center;
@@ -47,13 +48,14 @@
       padding: 10px;
       font-size: 16px;
       margin-bottom: 10px;
-      background: #fff;
-      color: #000;
-    }
-    body.dark textarea {
       background: #2c2c2c;
       color: #f1f1f1;
       border: 1px solid #555;
+    }
+    body.light textarea {
+      background: #fff;
+      color: #000;
+      border: 1px solid #ccc;
     }
     .controls {
       display: flex;
@@ -74,16 +76,16 @@
       flex: 1;
       overflow-y: auto;
       padding: 10px;
-      border: 1px solid #ddd;
+      border: 1px solid #444;
       border-radius: 5px;
-      background: #fafafa;
-      line-height: 1.6;
-      color: #000;
-    }
-    body.dark #display {
       background: #2c2c2c;
-      border-color: #444;
+      line-height: 1.6;
       color: #f1f1f1;
+    }
+    body.light #display {
+      background: #fafafa;
+      border-color: #ddd;
+      color: #000;
     }
     .word {
       padding: 0 3px;
@@ -101,31 +103,57 @@
     #progressBar {
       width: 100%;
       height: 10px;
-      background: #ddd;
+      background: #444;
       border-radius: 5px;
       overflow: hidden;
       margin-top: 10px;
     }
-    body.dark #progressBar {
-      background: #444;
+    body.light #progressBar {
+      background: #ddd;
     }
     #progress {
       height: 100%;
       width: 0%;
       background: #457b9d;
     }
-    .dark-toggle {
+    .settings-btn {
       position: absolute;
       top: 20px;
-      right: 20px;
+      left: 20px;
       font-size: 14px;
+    }
+    .settings-panel {
+      position: fixed;
+      top: 80px;
+      left: 20px;
+      background: #333;
+      color: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.3);
+      display: none;
+      z-index: 999;
+    }
+    .settings-panel input[type="radio"] {
+      margin-right: 6px;
+    }
+    body.light .settings-panel {
+      background: #fff;
+      color: #000;
     }
   </style>
 </head>
-<body>
-  <button class="dark-toggle" onclick="toggleDarkMode()">🌓 Toggle Dark Mode</button>
+<body class="dark">
+  <button class="settings-btn" onclick="toggleSettings()">⚙️ Settings</button>
+  <div class="settings-panel" id="settingsPanel">
+    <label><input type="radio" name="mode" value="dark" checked onchange="setTheme('dark')"> Dark Mode</label><br>
+    <label><input type="radio" name="mode" value="light" onchange="setTheme('light')"> Light Mode</label><br><br>
+    <label><input type="radio" name="highlightMode" value="word" checked onchange="setHighlightMode('word')"> Single Word</label><br>
+    <label><input type="radio" name="highlightMode" value="phrase" onchange="setHighlightMode('phrase')"> Phrase (3 words)</label>
+  </div>
+
   <div class="container">
-    <h1>TimedReader</h1>
+    <h1>Smart Timed Reader</h1>
     <div id="countdown"></div>
     <textarea id="textInput" placeholder="Paste your text here..."></textarea>
     <div class="controls">
@@ -142,8 +170,23 @@
   <script>
     let currentWordIndex = 0;
     let wordElements = [];
-    let timePerChar = 0;
-    let totalWords = 0;
+    let delayPerStep = 0;
+    let totalSteps = 0;
+    let totalTime = 0;
+    let highlightMode = 'word';
+
+    function toggleSettings() {
+      const panel = document.getElementById("settingsPanel");
+      panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function setTheme(mode) {
+      document.body.className = mode;
+    }
+
+    function setHighlightMode(mode) {
+      highlightMode = mode;
+    }
 
     function loadDemoText() {
       document.getElementById("textInput").value = "Reading is a wonderful way to expand the mind, relax the soul, and discover new ideas. Try this demo to experience the timed reader.";
@@ -153,7 +196,7 @@
       const text = document.getElementById("textInput").value.trim();
       const minutes = parseInt(document.getElementById("minutes").value) || 0;
       const seconds = parseInt(document.getElementById("seconds").value) || 0;
-      const totalTime = (minutes * 60 + seconds) * 1000;
+      totalTime = (minutes * 60 + seconds) * 1000;
       const countdownEl = document.getElementById("countdown");
       const display = document.getElementById("display");
       const progress = document.getElementById("progress");
@@ -164,23 +207,23 @@
       }
 
       const words = text.split(/\s+/);
-      totalWords = words.length;
-      const totalChars = words.reduce((sum, word) => sum + word.length, 0);
-      timePerChar = totalTime / totalChars;
-
       display.innerHTML = "";
       document.getElementById("message").textContent = "";
       progress.style.width = "0%";
       currentWordIndex = 0;
       wordElements = [];
 
-      words.forEach(word => {
+      let steps = highlightMode === 'phrase' ? Math.ceil(words.length / 3) : words.length;
+      delayPerStep = totalTime / steps;
+      totalSteps = steps;
+
+      for (let i = 0; i < words.length; i++) {
         const span = document.createElement("span");
         span.className = "word";
-        span.textContent = word + " ";
+        span.textContent = words[i] + " ";
         display.appendChild(span);
         wordElements.push(span);
-      });
+      }
 
       let countdown = 3;
       countdownEl.textContent = `Starting in ${countdown}...`;
@@ -191,36 +234,39 @@
         } else {
           clearInterval(countdownInterval);
           countdownEl.textContent = "";
-          highlightNextWord();
+          highlightNextStep();
         }
       }, 1000);
     }
 
-    function highlightNextWord() {
+    function highlightNextStep() {
       if (currentWordIndex > 0) {
-        wordElements[currentWordIndex - 1].classList.remove("highlight");
+        for (let i = 0; i < (highlightMode === 'phrase' ? 3 : 1); i++) {
+          if (wordElements[currentWordIndex - i - 1]) {
+            wordElements[currentWordIndex - i - 1].classList.remove("highlight");
+          }
+        }
       }
 
       if (currentWordIndex < wordElements.length) {
-        const span = wordElements[currentWordIndex];
-        span.classList.add("highlight");
-        span.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-
-        const word = span.textContent.trim();
-        const delay = Math.max(300, Math.min(word.length * timePerChar, 1500));
+        const count = highlightMode === 'phrase' ? 3 : 1;
+        for (let i = 0; i < count; i++) {
+          const span = wordElements[currentWordIndex + i];
+          if (span) {
+            span.classList.add("highlight");
+            span.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+          }
+        }
 
         const progress = document.getElementById("progress");
-        progress.style.width = ((currentWordIndex + 1) / totalWords * 100).toFixed(2) + "%";
+        const stepIndex = highlightMode === 'phrase' ? Math.floor(currentWordIndex / 3) : currentWordIndex;
+        progress.style.width = ((stepIndex + 1) / totalSteps * 100).toFixed(2) + "%";
 
-        currentWordIndex++;
-        setTimeout(highlightNextWord, delay);
+        currentWordIndex += highlightMode === 'phrase' ? 3 : 1;
+        setTimeout(highlightNextStep, delayPerStep);
       } else {
         document.getElementById("message").textContent = "✅ Done reading!";
       }
-    }
-
-    function toggleDarkMode() {
-      document.body.classList.toggle("dark");
     }
   </script>
 </body>
