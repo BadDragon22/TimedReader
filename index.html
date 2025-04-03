@@ -1,3 +1,4 @@
+<!-- Full restored version with updated features -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -63,7 +64,7 @@
       flex-wrap: wrap;
       margin-bottom: 15px;
     }
-    .controls input, .controls button {
+    .controls input, .controls button, .controls select {
       font-size: 16px;
       padding: 8px;
       border: 1px solid #ccc;
@@ -81,6 +82,7 @@
       background: #2c2c2c;
       line-height: 1.6;
       color: #f1f1f1;
+      font-size: var(--fontSize, 16px);
     }
     body.light #display {
       background: #fafafa;
@@ -93,6 +95,9 @@
     }
     .highlight {
       background-color: yellow;
+    }
+    .focus-mode .word:not(.highlight) {
+      opacity: 0.2;
     }
     #countdown, #message {
       font-weight: bold;
@@ -134,7 +139,7 @@
       display: none;
       z-index: 999;
     }
-    .settings-panel input[type="radio"] {
+    .settings-panel input[type="radio"], .settings-panel select {
       margin-right: 6px;
     }
     body.light .settings-panel {
@@ -159,7 +164,15 @@
     <label><input type="radio" name="mode" value="light" onchange="setTheme('light')"> Light Mode</label><br><br>
     <label><input type="radio" name="highlightMode" value="word" checked onchange="setHighlightMode('word')"> Single Word</label><br>
     <label><input type="radio" name="highlightMode" value="phrase" onchange="setHighlightMode('phrase')"> Phrase (3 words)</label><br><br>
-    <button onclick="exportHighlightedText()">📤 Export Highlighted</button>
+    <label>Font Size:
+      <select onchange="setFontSize(this.value)">
+        <option value="14">Small</option>
+        <option value="16" selected>Medium</option>
+        <option value="20">Large</option>
+        <option value="24">XL</option>
+      </select>
+    </label><br><br>
+    <label><input type="checkbox" onchange="toggleFocusMode(this.checked)"> Focus Mode</label><br><br>
     <input type="file" accept=".txt" onchange="importTextFile(event)" />
   </div>
 
@@ -203,6 +216,16 @@
       localStorage.setItem('highlightMode', mode);
     }
 
+    function setFontSize(size) {
+      document.documentElement.style.setProperty('--fontSize', `${size}px`);
+      localStorage.setItem('fontSize', size);
+    }
+
+    function toggleFocusMode(enabled) {
+      document.getElementById('display').classList.toggle('focus-mode', enabled);
+      localStorage.setItem('focusMode', enabled);
+    }
+
     function loadDemoText() {
       const demo = "Reading is a wonderful way to expand the mind, relax the soul, and discover new ideas. Try this demo to experience the timed reader.";
       document.getElementById("textInput").value = demo;
@@ -216,16 +239,6 @@
         document.getElementById("textInput").value = e.target.result;
       };
       reader.readAsText(file);
-    }
-
-    function exportHighlightedText() {
-      const highlighted = wordElements.filter(span => span.classList.contains('highlight'));
-      const text = highlighted.map(span => span.textContent).join(' ');
-      const blob = new Blob([text], { type: 'text/plain' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'highlighted.txt';
-      link.click();
     }
 
     function prepareReading() {
@@ -316,15 +329,17 @@
       document.getElementById("message").textContent = "⏹ Reading stopped.";
     }
 
-    // Load saved settings on start
     window.onload = function() {
       const savedTheme = localStorage.getItem('theme');
       const savedMode = localStorage.getItem('highlightMode');
+      const savedFontSize = localStorage.getItem('fontSize');
+      const savedFocus = localStorage.getItem('focusMode') === 'true';
       if (savedTheme) document.body.className = savedTheme;
       if (savedMode) highlightMode = savedMode;
+      if (savedFontSize) setFontSize(savedFontSize);
+      if (savedFocus) toggleFocusMode(true);
     };
 
-    // Mobile swipe gestures
     document.addEventListener('touchstart', handleTouchStart, false);
     document.addEventListener('touchend', handleTouchEnd, false);
     let xDown = null;
@@ -337,7 +352,6 @@
       if (!xDown) return;
       let xUp = evt.changedTouches[0].clientX;
       let xDiff = xDown - xUp;
-
       if (Math.abs(xDiff) > 50) stopReading();
       xDown = null;
     }
