@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Timed Reader</title>
+  <title>TimedReader</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
     html, body {
@@ -153,13 +153,14 @@
   </div>
 
   <div class="container">
-    <h1>Smart Timed Reader</h1>
+    <h1>TimedReader</h1>
     <div id="countdown"></div>
     <textarea id="textInput" placeholder="Paste your text here..."></textarea>
     <div class="controls">
       <input type="number" id="minutes" placeholder="Minutes" min="0">
       <input type="number" id="seconds" placeholder="Seconds" min="0" max="59">
       <button onclick="prepareReading()">▶ Start</button>
+      <button onclick="stopReading()">⏹ Stop</button>
       <button onclick="loadDemoText()">📄 Demo Text</button>
     </div>
     <div id="display"></div>
@@ -174,6 +175,7 @@
     let totalSteps = 0;
     let totalTime = 0;
     let highlightMode = 'word';
+    let readingTimeout = null;
 
     function toggleSettings() {
       const panel = document.getElementById("settingsPanel");
@@ -193,6 +195,8 @@
     }
 
     function prepareReading() {
+      stopReading(); // reset before start
+
       const text = document.getElementById("textInput").value.trim();
       const minutes = parseInt(document.getElementById("minutes").value) || 0;
       const seconds = parseInt(document.getElementById("seconds").value) || 0;
@@ -263,10 +267,19 @@
         progress.style.width = ((stepIndex + 1) / totalSteps * 100).toFixed(2) + "%";
 
         currentWordIndex += highlightMode === 'phrase' ? 3 : 1;
-        setTimeout(highlightNextStep, delayPerStep);
+        readingTimeout = setTimeout(highlightNextStep, delayPerStep);
       } else {
         document.getElementById("message").textContent = "✅ Done reading!";
       }
+    }
+
+    function stopReading() {
+      clearTimeout(readingTimeout);
+      readingTimeout = null;
+      if (wordElements.length) {
+        wordElements.forEach(span => span.classList.remove("highlight"));
+      }
+      document.getElementById("message").textContent = "⏹ Reading stopped.";
     }
   </script>
 </body>
