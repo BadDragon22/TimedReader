@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TimedReader</title>
+  <title>Smart Timed Reader</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
     html, body {
@@ -141,6 +141,15 @@
       background: #fff;
       color: #000;
     }
+    @media (max-width: 768px) {
+      body {
+        touch-action: manipulation;
+      }
+      .container {
+        max-height: none;
+        height: 100%;
+      }
+    }
   </style>
 </head>
 <body class="dark">
@@ -149,11 +158,13 @@
     <label><input type="radio" name="mode" value="dark" checked onchange="setTheme('dark')"> Dark Mode</label><br>
     <label><input type="radio" name="mode" value="light" onchange="setTheme('light')"> Light Mode</label><br><br>
     <label><input type="radio" name="highlightMode" value="word" checked onchange="setHighlightMode('word')"> Single Word</label><br>
-    <label><input type="radio" name="highlightMode" value="phrase" onchange="setHighlightMode('phrase')"> Phrase (3 words)</label>
+    <label><input type="radio" name="highlightMode" value="phrase" onchange="setHighlightMode('phrase')"> Phrase (3 words)</label><br><br>
+    <button onclick="exportHighlightedText()">📤 Export Highlighted</button>
+    <input type="file" accept=".txt" onchange="importTextFile(event)" />
   </div>
 
   <div class="container">
-    <h1>TimedReader</h1>
+    <h1>Smart Timed Reader</h1>
     <div id="countdown"></div>
     <textarea id="textInput" placeholder="Paste your text here..."></textarea>
     <div class="controls">
@@ -184,19 +195,41 @@
 
     function setTheme(mode) {
       document.body.className = mode;
+      localStorage.setItem('theme', mode);
     }
 
     function setHighlightMode(mode) {
       highlightMode = mode;
+      localStorage.setItem('highlightMode', mode);
     }
 
     function loadDemoText() {
-      document.getElementById("textInput").value = "Reading is a wonderful way to expand the mind, relax the soul, and discover new ideas. Try this demo to experience the timed reader.";
+      const demo = "Reading is a wonderful way to expand the mind, relax the soul, and discover new ideas. Try this demo to experience the timed reader.";
+      document.getElementById("textInput").value = demo;
+    }
+
+    function importTextFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById("textInput").value = e.target.result;
+      };
+      reader.readAsText(file);
+    }
+
+    function exportHighlightedText() {
+      const highlighted = wordElements.filter(span => span.classList.contains('highlight'));
+      const text = highlighted.map(span => span.textContent).join(' ');
+      const blob = new Blob([text], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'highlighted.txt';
+      link.click();
     }
 
     function prepareReading() {
-      stopReading(); // reset before start
-
+      stopReading();
       const text = document.getElementById("textInput").value.trim();
       const minutes = parseInt(document.getElementById("minutes").value) || 0;
       const seconds = parseInt(document.getElementById("seconds").value) || 0;
@@ -221,13 +254,13 @@
       delayPerStep = totalTime / steps;
       totalSteps = steps;
 
-      for (let i = 0; i < words.length; i++) {
+      words.forEach(word => {
         const span = document.createElement("span");
         span.className = "word";
-        span.textContent = words[i] + " ";
+        span.textContent = word + " ";
         display.appendChild(span);
         wordElements.push(span);
-      }
+      });
 
       let countdown = 3;
       countdownEl.textContent = `Starting in ${countdown}...`;
@@ -245,7 +278,8 @@
 
     function highlightNextStep() {
       if (currentWordIndex > 0) {
-        for (let i = 0; i < (highlightMode === 'phrase' ? 3 : 1); i++) {
+        const count = highlightMode === 'phrase' ? 3 : 1;
+        for (let i = 0; i < count; i++) {
           if (wordElements[currentWordIndex - i - 1]) {
             wordElements[currentWordIndex - i - 1].classList.remove("highlight");
           }
@@ -280,6 +314,32 @@
         wordElements.forEach(span => span.classList.remove("highlight"));
       }
       document.getElementById("message").textContent = "⏹ Reading stopped.";
+    }
+
+    // Load saved settings on start
+    window.onload = function() {
+      const savedTheme = localStorage.getItem('theme');
+      const savedMode = localStorage.getItem('highlightMode');
+      if (savedTheme) document.body.className = savedTheme;
+      if (savedMode) highlightMode = savedMode;
+    };
+
+    // Mobile swipe gestures
+    document.addEventListener('touchstart', handleTouchStart, false);
+    document.addEventListener('touchend', handleTouchEnd, false);
+    let xDown = null;
+
+    function handleTouchStart(evt) {
+      xDown = evt.touches[0].clientX;
+    }
+
+    function handleTouchEnd(evt) {
+      if (!xDown) return;
+      let xUp = evt.changedTouches[0].clientX;
+      let xDiff = xDown - xUp;
+
+      if (Math.abs(xDiff) > 50) stopReading();
+      xDown = null;
     }
   </script>
 </body>
